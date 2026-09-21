@@ -832,7 +832,7 @@ setInterval(()=>{if(S.screen!=='voice')renderHdr()},60000);
 if(pending.length)overlayPending();
 render();
 pull();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});
 })();
 </script>
 </body>
