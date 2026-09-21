@@ -251,6 +251,7 @@ const TRADE_NAME={DIRT:'Dirt / Site',ELEC:'Electric',PLUMB:'Plumbing',SEPTIC:'Se
 const STATUSES=[['booked','Booked'],['active','Happening now'],['open','Due — not started'],['unbooked','Needs a crew / date'],['blocked','Blocked'],['hard','Hard date'],['done','Done']];
 const CREW_STATUS=['PREFERRED','ACTIVE','BACKUP','USED ONCE'];
 const LS='jcpv.cc.v1';
+const APP_VERSION='v4';
 const $=(s,r)=>(r||document).querySelector(s);
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const d=(i)=>new Date(i+'T12:00:00');
@@ -726,7 +727,7 @@ function toast(msg){let el=$('#toast');if(!el){el=document.createElement('div');
 function syncLine(){
   const n=pending.length,w=n+' CHANGE'+(n===1?'':'S')+' WAITING';
   const m={live:[n?'SYNCING '+w:'SAVED · SYNCED WITH YOUR SHEET',false],pending:['SYNCING · '+w,false],offline:['NO SIGNAL · '+w+' — SAVED ON THIS PHONE',true],error:['CAN’T REACH YOUR SHEET · '+w+' — WILL RETRY',true],connecting:['CONNECTING…',false]}[S.sync]||['',false];
-  return '<div class="sync'+(m[1]?' warn':'')+'">'+m[0]+'</div>';
+  return '<div class="sync'+(m[1]?' warn':'')+'">'+m[0]+' · APP '+APP_VERSION+'</div>';
 }
 async function backup(){
   const data=JSON.stringify({v:1,saved:new Date().toISOString(),projects:Object.values(P),tasks:T,crews:C,journal:J},null,2);
@@ -754,7 +755,7 @@ function renderMain(){
   if(focusId){const f=document.getElementById(focusId);if(f&&m.contains(f)){f.focus();if(pos!=null&&f.setSelectionRange)try{f.setSelectionRange(pos,pos)}catch(e){}}}
 }
 function vSetup(){
-  return '<div class="setup"><div class="eyebrow">FIRST TIME ON THIS PHONE</div><h2 class="title">Connect your jobs</h2><p>Paste the setup code, or type just your key. It connects this app to your Google Sheet. You only do this once per phone.</p><textarea id="setupcode" placeholder="Setup code or key" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea><button class="btn-ink" data-act="savesetup">Connect</button><div id="setupmsg" role="status" style="font:600 12px/1.4 var(--mono)"></div>'+(CFG?'<button class="btn-line" data-act="cancelsetup" style="min-height:44px">Cancel</button>':'')+'</div>';
+  return '<div class="setup"><div class="eyebrow">FIRST TIME ON THIS PHONE · APP '+APP_VERSION+'</div><h2 class="title">Connect your jobs</h2><p>Paste the setup code, or type just your key. It connects this app to your Google Sheet. You only do this once per phone.</p><textarea id="setupcode" placeholder="Setup code or key" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea><button class="btn-ink" data-act="savesetup">Connect</button><div id="setupmsg" role="status" style="font:600 12px/1.4 var(--mono)"></div>'+(CFG?'<button class="btn-line" data-act="cancelsetup" style="min-height:44px">Cancel</button>':'')+'</div>';
 }
 function render(){
   renderHdr();
@@ -777,7 +778,7 @@ async function saveSetup(){
   say('Checking the connection\u2026',false);
   const prev=CFG;CFG={url:r.url,key:r.key};
   try{await api({action:'all'})}
-  catch(e){CFG=prev;say(/unauthorized/.test(String(e&&e.message))?'That key isn\u2019t right \u2014 check each character.':'Couldn\u2019t reach your Sheet. Check your signal and tap Connect again.',true);return}
+  catch(e){CFG=prev;const em=String(e&&e.message||e);say(/unauthorized/.test(em)?'That key isn\u2019t right \u2014 check each character.':'Couldn\u2019t reach your Sheet ('+em+'). Check your signal and tap Connect again.',true);return}
   lsSet(LS+'.cfg',CFG);S.setup=false;S.sync='connecting';render();pull();toast('Connected.');
 }
 
