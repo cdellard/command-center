@@ -251,7 +251,7 @@ const TRADE_NAME={DIRT:'Dirt / Site',ELEC:'Electric',PLUMB:'Plumbing',SEPTIC:'Se
 const STATUSES=[['booked','Booked'],['active','Happening now'],['open','Due — not started'],['unbooked','Needs a crew / date'],['blocked','Blocked'],['hard','Hard date'],['done','Done']];
 const CREW_STATUS=['PREFERRED','ACTIVE','BACKUP','USED ONCE'];
 const LS='jcpv.cc.v1';
-const APP_VERSION='v5';
+const APP_VERSION='v6';
 const $=(s,r)=>(r||document).querySelector(s);
 const esc=(s)=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const d=(i)=>new Date(i+'T12:00:00');
@@ -354,6 +354,7 @@ function renderHdr(){
 }
 function renderUndo(){
   const u=S.undo,el=$('#undo');
+  if(S.safariSetup&&CFG&&!u){el.innerHTML='<div class="undo"><div class="us"></div><div class="ut">Connected in Safari<div class="ub">NOW TAP SHARE \u2192 ADD TO HOME SCREEN \u2192 ADD, THEN OPEN JCPV FROM YOUR HOME SCREEN</div></div></div>';return}
   if(!u){el.innerHTML='';return}
   el.innerHTML='<div class="undo"><div class="us"></div><div class="ut">'+u.count+' change'+(u.count===1?'':'s')+' applied by voice<div class="ub">NOT TEXTED — TAP A CREW TO TEXT · UNDO FOR 30s</div></div><button data-act="undo">UNDO</button></div>'+
     (u.sms.length?'<div class="sms">'+u.sms.map(s=>'<a href="sms:'+esc(s.phone)+'&body='+encodeURIComponent(s.body)+'">TEXT '+esc(s.name.toUpperCase())+'</a>').join('')+'</div>':'');
@@ -834,11 +835,17 @@ if(pending.length)overlayPending();
 render();
 (async function autoSetup(){
   const h=location.hash||'';const m=h.match(/^#s=(.+)$/);if(!m)return pull();
-  history.replaceState(null,'',location.pathname+location.search);
+  const standalone=window.navigator.standalone===true||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+  if(!standalone){
+    // In Safari: keep the link so "Add to Home Screen" carries it into the installed app.
+    try{const man={name:'JCPV Command Center',short_name:'JCPV',start_url:location.href,scope:location.origin+location.pathname,display:'standalone',background_color:'#e9e5db',theme_color:'#e9e5db',icons:[{src:location.origin+location.pathname+'icon-192.png',sizes:'192x192',type:'image/png'},{src:location.origin+location.pathname+'icon-512.png',sizes:'512x512',type:'image/png'}]};
+      const l=document.querySelector('link[rel=manifest]');if(l)l.href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(man));}catch(e){}
+    S.safariSetup=true;
+  }else history.replaceState(null,'',location.pathname+location.search);
   const r=parseSetup(decodeURIComponent(m[1]));
   if(r.err){S.setup=true;render();toast(r.err);return}
   const prev=CFG;CFG={url:r.url,key:r.key};
-  try{await api({action:'all'});lsSet(LS+'.cfg',CFG);S.setup=false;S.sync='connecting';render();pull();toast('Connected.')}
+  try{await api({action:'all'});lsSet(LS+'.cfg',CFG);S.setup=false;S.sync='connecting';render();pull();toast(S.safariSetup?'Connected. Now tap Share \u2192 Add to Home Screen.':'Connected.')}
   catch(e){CFG=prev;S.setup=true;render();const el=$('#setupmsg');if(el){el.textContent='Link didn\u2019t connect: '+String(e&&e.message||e);el.style.color='var(--red)'}}
 })();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});
